@@ -1,0 +1,65 @@
+version: '3.8'
+services:
+
+  # Server container service
+  nginx:
+    image: nginx:stable-alpine
+    container_name: library_server
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "8008:80"
+    links:
+      - php
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/site.conf:/etc/nginx/conf.d/default.conf:rw
+      - ./docker/logs/nginx:/ar/logs/nginx:rw
+    depends_on:
+      - php
+      - mysql
+    networks:
+      - lib_network
+
+  # Database container service
+  mysql:
+    image: mysql:5.7.22
+    container_name: library_db
+    restart: unless-stopped
+    tty: true
+    ports: 
+      - "5020:3306"
+    volumes:
+      - mysqldata:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: library
+      MYSQL_USER: librarian
+      MYSQL_PASSWORD: bookshelf
+      MYSQL_ROOT_PASSWORD: books
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    networks:
+      - lib_network
+
+  # PHP container
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: library_php
+    volumes:
+      - ./:/var/www/html
+    ports:
+      - "9000:9000"
+    networks:
+      - lib_network
+
+# Docker networks
+networks:
+  lib_network:
+    driver: bridge
+
+# Volumes
+volumes:
+  mysqldata:
+    driver: local
